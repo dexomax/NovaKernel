@@ -1,0 +1,91 @@
+cat << 'EOF' > MANUAL.txt
+===============================================================================
+                       NOVAOS SYSTEM OPERATION MANUAL
+===============================================================================
+Lead Architect: Yazhan
+System Version: Build 2026.100 (Freestanding Protected Mode Stack)
+Document Type: Core Engineering Guide & User Manual
+
+-------------------------------------------------------------------------------
+1. PREREQUISITES & TOOLCHAIN INSTALLATION
+-------------------------------------------------------------------------------
+Before compiling NovaOS, your development machine needs an assembler (NASM), 
+a C compiler capable of building 32-bit targets (GCC), and the QEMU PC system 
+emulator.
+
+Find your Linux distribution below and run the corresponding command:
+
+A. Debian / Ubuntu / Zorin OS / Mint:
+   $ sudo apt update
+   $ sudo apt install nasm gcc gcc-multilib qemu-system-x86 -y
+
+B. Arch Linux:
+   $ sudo pacman -Syu
+   $ sudo pacman -S nasm gcc qemu-desktop
+
+C. Fedora / RHEL:
+   $ sudo dnf check-update
+   $ sudo dnf install nasm gcc glibc-devel.i686 qemu-system-x86
+
+-------------------------------------------------------------------------------
+2. COMPILATION AND EMULATION LOOP
+-------------------------------------------------------------------------------
+Once the tools are installed, navigate to your project directory (~/NovaOS) 
+and execute this unified command block to compile, link, and run:
+
+nasm -f elf32 boot.asm -o boot.o && \
+gcc -m32 -c kernel.c -o kernel.o -std=gnu99 -ffreestanding -O2 -Wall -Wextra && \
+ld -m elf_i386 -T linker.ld -o mykernel.bin boot.o kernel.o && \
+qemu-system-i386 -kernel mykernel.bin
+
+Step-by-Step Breakdown:
+  1. nasm -f elf32:
+     Assembles 'boot.asm' into a 32-bit ELF format object file ('boot.o').
+  2. gcc -m32 -c ... -ffreestanding:
+     Compiles 'kernel.c' into a 32-bit object file ('kernel.o'). The 
+     -ffreestanding flag tells GCC not to look for standard C library 
+     headers (like stdio.h), since our kernel runs on bare hardware.
+  3. ld -m elf_i386 -T linker.ld:
+     Links 'boot.o' and 'kernel.o' together using 'linker.ld' as a memory 
+     map layout blueprint to generate the final 'mykernel.bin' bootable image.
+  4. qemu-system-i386 -kernel:
+     Starts the emulator and utilizes QEMU's built-in Multiboot loader to 
+     directly execute 'mykernel.bin' without needing an external ISO creator.
+
+-------------------------------------------------------------------------------
+3. OPERATING THE NOVAOS ENVIRONMENT
+-------------------------------------------------------------------------------
+When the system launches, the VGA display driver initializes and prints the 
+primary terminal line.
+
+Key Input Controls:
+  * [Typing]    : Directly streams matching character bytes to the screen.
+  * [BACKSPACE] : Safely clears the previous character within the input buffer.
+  * [ENTER]     : Passes the tracked input string to the command interpreter.
+
+The Paginated Helpbook System:
+  Because the physical VGA text screen buffer can only display 25 text lines at 
+  once, running 'help' will scroll text out of sight. 
+  
+  To view all 100 system commands safely:
+    1. Type 'helpbook' into the shell and hit ENTER.
+    2. The shell enters pagination mode and presents Page 1 (15 commands).
+    3. Press ENTER to step cleanly through the code matrix pages.
+    4. Upon hitting the end of the 100-command index, press ENTER to automatically
+       close the reader module and drop back to the standard prompt.
+
+-------------------------------------------------------------------------------
+4. WORKSPACE ENVIRONMENT LAYOUT
+-------------------------------------------------------------------------------
+Your workspace directory structure:
+
+  ~/NovaOS/
+  ├── boot.asm      <-- Assembly entry point, configures Multiboot header
+  ├── kernel.c      <-- Main C engine, keyboard map, 100-command shell
+  ├── linker.ld     <-- Linker script guiding physical memory layout
+  └── MANUAL.txt    <-- This documentation file
+
+===============================================================================
+                           [ END OF DOCUMENTATION ]
+===============================================================================
+EOF
